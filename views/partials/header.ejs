@@ -3,19 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= title %> · Equipment Borrowing</title>
+  <title><%= title %> · CSPC Equipment Borrowing</title>
+  <link rel="icon" href="/images/cspc-logo.png">
   <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/theme.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
 <% if (user) { %>
 <header class="topbar">
+  <a class="brand" href="<%= user.role === 'admin' ? '/reservations' : '/equipment' %>">
+    <img class="brand-logo" src="/images/cspc-logo.png" alt="CSPC logo" width="40" height="40" data-fallback>
+    <span class="brand-text">CSPC <span>Equipment Borrowing</span></span>
+  </a>
   <h1 class="page-title"><%= title %></h1>
   <nav class="topbar-nav" aria-label="Main">
+    <% if (user.role !== 'admin') { %>
+      <a href="/equipment"  class="<%= currentPath.startsWith('/equipment') ? 'active' : '' %>">Equipment</a>
+    <% } %>
     <a href="/reservations" class="<%= currentPath.startsWith('/reservations') ? 'active' : '' %>">Reservations</a>
-    <a href="/booking"      class="<%= currentPath.startsWith('/booking') ? 'active' : '' %>">Booking</a>
-    <% if (user.role === 'admin') { %>
+    <% if (user.role !== 'admin') { %>
+      <a href="/booking"    class="<%= currentPath.startsWith('/booking') ? 'active' : '' %>">Booking</a>
+    <% } else { %>
       <a href="/assets"     class="<%= currentPath.startsWith('/assets') ? 'active' : '' %>">Assets</a>
     <% } %>
   </nav>
@@ -25,13 +35,22 @@
         🔔<% if (pendingCount > 0) { %><span class="badge"><%= pendingCount %></span><% } %>
       </a>
     <% } %>
-    <span class="user-chip"><%= user.name %> <small><%= user.role %></small></span>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode">
+      <span class="tt-dark">🌙 Dark</span><span class="tt-light">☀️ Light</span>
+    </button>
+    <span class="user-chip"><%= user.name %> <small><%= user.role === 'admin' ? 'admin' : user.college %></small></span>
     <form method="post" action="/logout">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <button class="btn btn-small btn-ghost">Log out</button>
     </form>
   </div>
 </header>
+<% } %>
+
+<% if (!user) { %>
+<button type="button" class="theme-toggle theme-floating" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode">
+  <span class="tt-dark">🌙 Dark</span><span class="tt-light">☀️ Light</span>
+</button>
 <% } %>
 
 <main id="main" class="<%= user ? 'container' : 'auth-wrap' %>">

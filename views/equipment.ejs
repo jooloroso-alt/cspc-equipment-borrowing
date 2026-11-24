@@ -1,0 +1,46 @@
+<%- include('partials/header') %>
+
+<section class="college-banner college-<%= college.code %>">
+  <h2><%= college.code %></h2>
+  <p><%= college.name %></p>
+</section>
+
+<p class="muted intro">Common equipment of your college. Pick an item and press <strong>Book</strong> to request it.</p>
+
+<% if (!items.length) { %><p class="muted">No equipment is listed for your college yet.</p><% } %>
+
+<div class="equip-grid">
+  <% items.forEach(a => { %>
+    <article class="equip-card">
+      <img class="equip-img"
+           src="<%= a.image ? '/uploads/equipment/' + a.image : '/images/equipment-placeholder.svg' %>"
+           alt="<%= a.image ? 'Photo of ' + a.name : '' %>" loading="lazy" width="320" height="240">
+      <div class="equip-body">
+        <h3><%= a.name %></h3>
+        <p class="muted small"><%= a.asset_tag %> · <%= a.category %></p>
+
+        <div class="stock" aria-label="Stock">
+          <div><span class="stock-num"><%= a.quantity %></span><span class="stock-label">Total</span></div>
+          <div class="<%= a.maintenance_qty > 0 ? 'stock-maint' : '' %>"><span class="stock-num"><%= a.maintenance_qty %></span><span class="stock-label">Maintenance</span></div>
+          <div><span class="stock-num"><%= a.borrowed %></span><span class="stock-label">Borrowed</span></div>
+          <div class="<%= a.available === 0 ? 'stock-zero' : 'stock-ok' %>"><span class="stock-num"><%= a.available %></span><span class="stock-label">Available</span></div>
+        </div>
+        <% if (a.maintenance_qty > 0) { %>
+          <p class="maint-note small"><%= a.maintenance_qty %> unit<%= a.maintenance_qty === 1 ? ' is' : 's are' %> under maintenance<%= a.usable > 0 ? ' - the rest can still be booked.' : '.' %></p>
+        <% } %>
+
+        <div class="equip-foot">
+          <% if (a.usable === 0) { %>
+            <span class="pill pill-cancelled">Under maintenance</span>
+          <% } else { %>
+            <% if (a.available === 0) { %><span class="pill pill-declined">All borrowed</span>
+            <% } else { %><span class="pill pill-approved">Available</span><% } %>
+            <a class="btn btn-small btn-outline" href="/booking?asset=<%= a.id %>">Book</a>
+          <% } %>
+        </div>
+      </div>
+    </article>
+  <% }) %>
+</div>
+
+<%- include('partials/footer') %>

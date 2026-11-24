@@ -55,3 +55,28 @@ document.querySelectorAll('.cal-day[data-date]').forEach((cell) => {
   cell.addEventListener('click', pick);
   cell.addEventListener('keydown', (e) => { if (e.key === 'Enter') pick(); });
 });
+
+// 7. If the CSPC logo file is missing, hide the broken-image icon instead of showing it
+document.querySelectorAll('img[data-fallback]').forEach((img) => {
+  const hide = () => { img.hidden = true; };
+  img.addEventListener('error', hide);
+  if (img.complete && img.naturalWidth === 0) hide();
+});
+
+
+// 8. Booking form: the Quantity box can never go above the units that exist for the chosen asset
+const assetSelect = document.getElementById('asset_id');
+const qtyInput = document.getElementById('qty');
+if (assetSelect && qtyInput) {
+  const hint = document.getElementById('qty-hint');
+  const sync = () => {
+    const total = Number(assetSelect.selectedOptions[0] && assetSelect.selectedOptions[0].dataset.qty);
+    if (total) {
+      qtyInput.max = total;
+      if (Number(qtyInput.value) > total) qtyInput.value = total;
+      if (hint) hint.textContent = `Up to ${total} unit${total === 1 ? '' : 's'} (the office checks what is free for your dates).`;
+    } else if (hint) hint.textContent = 'How many units do you need?';
+  };
+  assetSelect.addEventListener('change', sync);
+  sync();
+}

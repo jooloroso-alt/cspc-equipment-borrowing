@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 <div class="booking-grid">
 
-  <%# ---------- LEFT: calendar ---------- %>
+  <%# ---------- LEFT: calendar (only your college's equipment) ---------- %>
   <section class="card" aria-label="Booking calendar">
     <div class="cal-toolbar">
       <div class="cal-nav">
@@ -39,22 +39,20 @@
     <form method="post" action="/booking" id="booking-form">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-      <label for="user_id">User</label>
-      <% if (user.role === 'admin') { %>
-        <select id="user_id" name="user_id" required>
-          <% userList.forEach(u => { %>
-            <option value="<%= u.id %>" <%= u.id === user.id ? 'selected' : '' %>><%= u.full_name %></option>
-          <% }) %>
-        </select>
-      <% } else { %>
-        <input id="user_name" value="<%= user.name %>" disabled>
-      <% } %>
+      <label for="user_name">User</label>
+      <input id="user_name" value="<%= user.name %> (<%= user.college %>)" disabled>
 
-      <label for="asset_id">Asset</label>
+      <label for="asset_id">Asset (<%= user.college %> equipment)</label>
       <select id="asset_id" name="asset_id" required>
         <option value="">Select an asset…</option>
-        <% assets.forEach(a => { %><option value="<%= a.id %>"><%= a.name %> - <%= a.asset_tag %></option><% }) %>
+        <% assets.forEach(a => { %>
+            <option value="<%= a.id %>" data-qty="<%= a.quantity - a.maintenance_qty %>" <%= a.id === selectedAsset ? 'selected' : '' %>><%= a.name %> - <%= a.asset_tag %> (<%= a.quantity - a.maintenance_qty %> can be booked)</option>
+        <% }) %>
       </select>
+
+      <label for="qty">Quantity</label>
+      <input id="qty" name="qty" type="number" min="1" max="999" value="1" required>
+      <p class="muted small" id="qty-hint">How many units do you need?</p>
 
       <label for="start">Start</label>
       <input id="start" name="start" type="datetime-local" value="<%= defaults.start %>" required>
@@ -70,7 +68,7 @@
       <label class="check"><input type="checkbox" name="auto_checkout"> Auto check in/out</label>
 
       <button class="btn btn-primary">Submit</button>
-      <% if (user.role !== 'admin') { %><p class="muted small">Your request will wait for admin approval.</p><% } %>
+      <p class="muted small">Your request will wait for admin approval.</p>
     </form>
   </section>
 </div>

@@ -26,6 +26,16 @@
         <option value="<%= o[0] %>" <%= filters.status === o[0] ? 'selected' : '' %>><%= o[1] %></option>
       <% }) %>
     </select>
+    <% if (user.role === 'admin') { %>
+      <select name="college" aria-label="College" data-autosubmit>
+        <option value="">All colleges</option>
+        <% COLLEGES.forEach(c => { %>
+          <option value="<%= c.code %>" <%= filters.college === c.code ? 'selected' : '' %>><%= c.code %></option>
+        <% }) %>
+      </select>
+    <% } else { %>
+      <span class="college-tag college-<%= user.college %>" title="Your college"><%= user.college %></span>
+    <% } %>
     <label class="filter-by">Filtered by:
       <select name="period" data-autosubmit>
         <option value="all"   <%= filters.period === 'all'   ? 'selected' : '' %>>All Time</option>
@@ -48,23 +58,29 @@
 <div class="table-wrap">
   <table class="table">
     <thead>
-      <tr><th>Name</th><th>Asset Tag</th><th>Status</th><th>Requested By</th><th>Start Date</th><th>Due Date</th><th>Actions</th></tr>
+      <tr><th>Name</th><th>College</th><th>Asset Tag</th><th>Qty</th><th>Status</th><th>Requested By</th><th>Start Date</th><th>Due Date</th><th>Notes</th><th>Actions</th></tr>
     </thead>
     <tbody>
     <% if (!rows.length) { %>
-      <tr><td colspan="7" class="empty">No reservations found.</td></tr>
+      <tr><td colspan="10" class="empty">No reservations found.</td></tr>
     <% } %>
     <% rows.forEach(r => {
          const isAdmin = user.role === 'admin';
          const canCancel = ['in_approval', 'approved'].includes(r.status);
          const hasMenu = isAdmin || canCancel; %>
       <tr>
-        <td><a class="link" href="/booking?date=<%= ymd(r.start_date) %>"><%= r.asset_name %></a></td>
+        <td>
+          <% if (isAdmin) { %><strong><%= r.asset_name %></strong>
+          <% } else { %><a class="link" href="/booking?date=<%= ymd(r.start_date) %>"><%= r.asset_name %></a><% } %>
+        </td>
+        <td><span class="college-tag college-<%= r.college %>"><%= r.college %></span></td>
         <td><%= r.asset_tag %></td>
+        <td><%= r.qty %></td>
         <td><span class="pill pill-<%= r.status %>"><%= statusLabel(r.status) %></span></td>
         <td><span class="avatar" aria-hidden="true"><%= r.requested_by.charAt(0).toUpperCase() %></span> <%= r.requested_by %></td>
         <td><%= fmtDateTime(r.start_date) %></td>
         <td class="<%= r.is_overdue ? 'overdue' : '' %>"><%= fmtDateTime(r.due_date) %></td>
+        <td class="notes-cell"><%= r.notes ? r.notes : '—' %></td>
         <td>
           <div class="actions">
             <% if (isAdmin && ['in_approval', 'approved'].includes(r.status)) { %>

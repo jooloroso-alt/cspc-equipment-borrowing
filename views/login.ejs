@@ -1,7 +1,8 @@
 <%- include('partials/header') %>
 <section class="auth-card">
-  <h1>Equipment Borrowing</h1>
-  <p class="muted">Log in to borrow or manage equipment.</p>
+  <img class="auth-logo" src="/images/cspc-logo.png" alt="CSPC logo" width="96" height="96" data-fallback>
+  <h1>CSPC Equipment Borrowing</h1>
+  <p class="muted">Camarines Sur Polytechnic Colleges. Log in to borrow or manage equipment.</p>
   <form method="post" action="/login">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <label for="email">Email</label>
@@ -11,5 +12,6 @@
     <button class="btn btn-primary btn-block">Log in</button>
   </form>
   <p class="muted center">No account yet? <a href="/register">Create one</a></p>
+  <p class="muted center small"><a href="/resend-verification">Resend verification email</a></p>
 </section>
 <%- include('partials/footer') %>

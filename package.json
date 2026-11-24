@@ -2,7 +2,7 @@
   "name": "equipment-borrowing",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js"
@@ -17,11 +17,18 @@
     "dotenv": "^18.0.8",
     "ejs": "^7.0.2",
     "express": "^4.22.3",
+    "express-mysql-session": "^3.0.3",
+    "express-rate-limit": "^8.7.1",
     "express-session": "^1.19.0",
     "helmet": "^8.3.0",
-    "mysql2": "^3.24.6"
+    "multer": "^2.5.0",
+    "mysql2": "^3.24.6",
+    "nodemailer": "^10.2.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

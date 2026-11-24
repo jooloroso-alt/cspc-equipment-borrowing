@@ -36,4 +36,25 @@ const toInputValue = (d) => {
 const DT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const toSqlDateTime = (v) => (DT_RE.test(v) && !isNaN(new Date(v)) ? v.replace('T', ' ') + ':00' : null);
 
-module.exports = { statusLabel, ymd, fmtDateTime, fmtTime, toInputValue, toSqlDateTime };
+// The five colleges that own equipment (code -> full name)
+const COLLEGES = [
+  { code: 'CCS',   name: 'College of Computer Studies' },
+  { code: 'CEA',   name: 'College of Engineering and Architecture' },
+  { code: 'CHS',   name: 'College of Health Sciences' },
+  { code: 'CAS',   name: 'College of Arts and Sciences' },
+  { code: 'CTHBM', name: 'College of Tourism, Hospitality and Business Management' },
+  { code: 'CTDE',  name: 'College of Technological and Developmental Education' }
+];
+const COLLEGE_CODES = COLLEGES.map((c) => c.code);
+
+// ---- Student email rule ----
+// First 2 letters of the first name + the last name, then @my.cspc.edu.ph
+// Example: Joshua Paul Veras -> joveras@my.cspc.edu.ph  (the middle name is not used)
+const STUDENT_EMAIL_DOMAIN = '@my.cspc.edu.ph';
+const lettersOnly = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase().replace(/[^a-z]/g, '');                  // removes accents, spaces, dots, hyphens
+const expectedStudentEmail = (first, last) =>
+  lettersOnly(first).slice(0, 2) + lettersOnly(last) + STUDENT_EMAIL_DOMAIN;
+
+module.exports = { expectedStudentEmail, lettersOnly, STUDENT_EMAIL_DOMAIN, COLLEGES, COLLEGE_CODES,
+                   statusLabel, ymd, fmtDateTime, fmtTime, toInputValue, toSqlDateTime };

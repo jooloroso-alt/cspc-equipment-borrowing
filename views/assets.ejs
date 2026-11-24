@@ -1,40 +1,74 @@
 <%- include('partials/header') %>
 
-<section class="card">
-  <h2 class="card-title">Add equipment</h2>
-  <form method="post" action="/assets" class="inline-form">
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <div><label for="n_name">Name</label><input id="n_name" name="name" maxlength="120" required></div>
-    <div><label for="n_tag">Asset tag</label><input id="n_tag" name="asset_tag" maxlength="40" required></div>
-    <div><label for="n_cat">Category</label><input id="n_cat" name="category" maxlength="60" placeholder="General"></div>
-    <div><label for="n_status">Status</label>
-      <select id="n_status" name="status"><option value="available">Available</option><option value="maintenance">Maintenance</option></select></div>
-    <button class="btn btn-primary">Add</button>
-  </form>
+<%# ---------- One tab per college ---------- %>
+<nav class="tabs" aria-label="Colleges">
+  <% tabs.forEach(t => { %>
+    <a class="tab <%= t.code === current.code ? 'on' : '' %>" href="/assets?college=<%= t.code %>"
+       <%- t.code === current.code ? 'aria-current="page"' : '' %>>
+      <strong><%= t.code %></strong>
+      <span><%= t.items.length %> item<%= t.items.length === 1 ? '' : 's' %> · <%= t.units %> unit<%= t.units === 1 ? '' : 's' %></span>
+    </a>
+  <% }) %>
+</nav>
+
+<section class="college-banner college-<%= current.code %>">
+  <h2><%= current.code %></h2>
+  <p><%= current.name %></p>
 </section>
 
+<%# ---------- Add equipment (opens when you click it; always for THIS college) ---------- %>
+<details class="add-box" <%= current.items.length ? '' : 'open' %>>
+  <summary class="btn btn-primary">+ Add equipment to <%= current.code %></summary>
+  <form method="post" action="/assets" class="add-form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="college" value="<%= current.code %>">
+    <div><label for="n_name">Name</label><input id="n_name" name="name" maxlength="120" required></div>
+    <div><label for="n_tag">Asset tag</label><input id="n_tag" name="asset_tag" maxlength="40" required placeholder="<%= current.code %>-XX-01"></div>
+    <div><label for="n_cat">Category</label><input id="n_cat" name="category" maxlength="60" placeholder="General"></div>
+    <div><label for="n_qty">Quantity</label><input id="n_qty" name="quantity" type="number" min="1" max="999" value="1" required></div>
+    <div><label for="n_maint">In maintenance</label><input id="n_maint" name="maintenance" type="number" min="0" max="999" value="0" required></div>
+    <div><button class="btn btn-primary">Add</button></div>
+    <p class="muted small add-note">You can upload a photo after adding, in the Photo column below.</p>
+  </form>
+</details>
+
+<%# ---------- This college's equipment ---------- %>
 <div class="table-wrap">
   <table class="table">
-    <thead><tr><th>Name</th><th>Asset Tag</th><th>Category</th><th>Status</th><th>Now</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Photo</th><th>Name</th><th>Asset Tag</th><th>Category</th><th>Qty</th><th>In maintenance</th><th>Borrowed now</th><th>Actions</th></tr></thead>
     <tbody>
-    <% if (!assets.length) { %><tr><td colspan="6" class="empty">No equipment yet.</td></tr><% } %>
-    <% assets.forEach(a => { %>
+    <% if (!current.items.length) { %><tr><td colspan="8" class="empty">No equipment for <%= current.code %> yet. Use the button above to add some.</td></tr><% } %>
+    <% current.items.forEach(a => { %>
       <%# Inputs sit in different cells but belong to ONE form through the form="" attribute %>
       <tr>
+        <td class="photo-cell">
+          <img class="thumb"
+               src="<%= a.image ? '/uploads/equipment/' + a.image : '/images/equipment-placeholder.svg' %>"
+               alt="<%= a.image ? 'Photo of ' + a.name : 'No photo yet' %>" width="64" height="48" loading="lazy">
+          <form method="post" action="/assets/<%= a.id %>/image" enctype="multipart/form-data" class="photo-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="file" name="image" accept="image/png,image/jpeg,image/webp" required aria-label="Photo for <%= a.name %>">
+            <button class="btn btn-small btn-outline">Upload</button>
+          </form>
+          <% if (a.image) { %>
+            <form method="post" action="/assets/<%= a.id %>/image/delete" data-confirm="Remove this photo?">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn-small btn-ghost">Remove photo</button>
+            </form>
+          <% } %>
+        </td>
         <td><input form="edit<%= a.id %>" name="name" value="<%= a.name %>" maxlength="120" required aria-label="Name"></td>
         <td><input form="edit<%= a.id %>" name="asset_tag" value="<%= a.asset_tag %>" maxlength="40" required aria-label="Asset tag"></td>
         <td><input form="edit<%= a.id %>" name="category" value="<%= a.category %>" maxlength="60" aria-label="Category"></td>
-        <td>
-          <select form="edit<%= a.id %>" name="status" aria-label="Status">
-            <option value="available"   <%= a.status === 'available'   ? 'selected' : '' %>>Available</option>
-            <option value="maintenance" <%= a.status === 'maintenance' ? 'selected' : '' %>>Maintenance</option>
-          </select>
-        </td>
-        <td><span class="pill <%= a.in_use ? 'pill-checked_out' : 'pill-approved' %>"><%= a.in_use ? 'In use' : 'Free' %></span></td>
+        <td><input form="edit<%= a.id %>" name="quantity" type="number" min="<%= Math.max(1, a.borrowed) %>" max="999" value="<%= a.quantity %>" required aria-label="Quantity" class="qty-input"></td>
+        <td><input form="edit<%= a.id %>" name="maintenance" type="number" min="0" max="999" value="<%= a.maintenance_qty %>" required aria-label="Units in maintenance" class="qty-input"></td>
+        <td><span class="pill <%= a.borrowed > 0 ? 'pill-checked_out' : 'pill-approved' %>"><%= a.borrowed %> of <%= a.quantity %></span>
+            <span class="muted small"><%= a.available %> available to book</span></td>
         <td>
           <div class="actions">
             <form id="edit<%= a.id %>" method="post" action="/assets/<%= a.id %>">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="college" value="<%= a.college %>">
               <button class="btn btn-small btn-outline">Save</button>
             </form>
             <form method="post" action="/assets/<%= a.id %>/delete" data-confirm="Delete this asset?">
