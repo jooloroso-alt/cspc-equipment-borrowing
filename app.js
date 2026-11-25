@@ -114,4 +114,6 @@ app.use((err, req, res, next) => {
   res.status(500).render('error', { title: 'Server error', message: 'Something went wrong. Please try again.' });
 });
 
-app.listen(PORT, () => console.log(`Equipment Borrowing running at http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Equipment Borrowing running on port ${PORT}`);
+});
