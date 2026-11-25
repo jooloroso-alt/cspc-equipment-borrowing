@@ -59,13 +59,24 @@ router.post('/login', loginLimiter, async (req, res, next) => {
     }
     // regenerate() = brand-new session id after login (stops session fixation)
     req.session.regenerate((err) => {
-      if (err) return next(err);
-      req.session.user = { id: user.id, name: user.full_name, role: user.role, college: user.college };
-      res.redirect('/reservations');
-    });
-  } catch (e) { next(e); }
-});
+  if (err) return next(err);
 
+  req.session.user = {
+    id: user.id,
+    name: user.full_name,
+    role: user.role,
+    college: user.college
+  };
+
+  req.session.save((err) => {
+    if (err) return next(err);
+    res.redirect('/reservations');
+  });
+});
+  } catch (e) {
+    next(e);
+  }
+});
 // ----- REGISTER (students -> role "user") -----
 router.get('/register', (req, res) => {
   if (req.session.user) return res.redirect('/reservations');
@@ -83,54 +94,83 @@ router.post('/register', signupLimiter, async (req, res, next) => {
     const fullName = [first, middle, last].filter(Boolean).join(' ');
 
     let problem = null;
-    if (!NAME_RE.test(first) || !NAME_RE.test(last) || (middle && !NAME_RE.test(middle)) ||
-        !lettersOnly(first) || !lettersOnly(last) || fullName.length > 120) {
+
+    if (!NAME_RE.test(first) || !NAME_RE.test(last) ||
+        (middle && !NAME_RE.test(middle)) ||
+        !lettersOnly(first) || !lettersOnly(last) ||
+        fullName.length > 120) {
       problem = 'Please enter your first and last name using letters only (middle name is optional).';
     } else if (!COLLEGE_CODES.includes(college)) {
       problem = 'Please choose your college.';
     } else if (email !== expectedStudentEmail(first, last)) {
-      // The email must match the name that was typed in: first 2 letters of first name + last name
       problem = 'Only CSPC student emails in the right format are accepted';
-    } else if (Buffer.byteLength(password) < 10 || Buffer.byteLength(password) > 72) {   // bcrypt reads max 72 bytes
+    } else if (Buffer.byteLength(password) < 10 ||
+               Buffer.byteLength(password) > 72) {
       problem = 'Password must be 10 to 72 characters.';
     } else if (password !== String(req.body.confirm || '')) {
       problem = 'Passwords do not match.';
     }
-    
-    if (problem) { flash(req, 'error', problem); return res.redirect('/register'); }
+
+    if (problem) {
+      flash(req, 'error', problem);
+      return res.redirect('/register');
+    }
 
     const inUse = () => {
       flash(req, 'error', 'This CSPC email is already in use, so you cannot create another account with it. Please log in instead.');
       return res.redirect('/register');
     };
 
-    // The same message is shown whether or not the email already exists (no account probing)
-        // One email = one account, whatever college is chosen on the form.
     const existing = await users.findByEmail(email);
+
     if (existing && existing.email_verified) return inUse();
 
     const hash = await bcrypt.hash(password, COST);
     const { token, hash: tokenHash } = newToken();
     let sent = true;
+
     try {
       if (existing) {
-        // Never verified, so nobody owns it yet: the newest sign-up replaces the pending one
-        if (!(await users.replaceUnverified({ id: existing.id, fullName, passwordHash: hash, college, tokenHash }))) return inUse();
+        if (!(await users.replaceUnverified({
+          id: existing.id,
+          fullName,
+          passwordHash: hash,
+          college,
+          tokenHash
+        }))) return inUse();
       } else {
-        await users.create({ fullName, email, passwordHash: hash, college, tokenHash });
+        await users.create({
+          fullName,
+          email,
+          passwordHash: hash,
+          college,
+          tokenHash
+        });
       }
-      await sendVerificationEmail(email, first, `${BASE_URL}/verify/${token}`);
+
+      await sendVerificationEmail(
+        email,
+        first,
+        `${BASE_URL}/verify/${token}`
+      );
     } catch (e) {
-      if (e.code === 'ER_DUP_ENTRY') return inUse();           // two sign-ups at the same moment
+      if (e.code === 'ER_DUP_ENTRY') return inUse();
+
       console.error('Sign-up error:', e.message);
       sent = false;
     }
-    if (sent) flash(req, 'success', `A verification link was sent to ${email}. Open it within 24 hours, then log in.`);
-    else flash(req, 'error', 'Your account was created, but we could not send the email. Use "Resend verification email" in a few minutes.');
-    res.redirect('/login');
-  } catch (e) { next(e); }
-});
 
+    if (sent) {
+      flash(req, 'success', `A verification link was sent to ${email}. Open it within 24 hours, then log in.`);
+    } else {
+      flash(req, 'error', 'Your account was created, but we could not send the email. Use "Resend verification email" in a few minutes.');
+    }
+
+    res.redirect('/login');
+  } catch (e) {
+    next(e);
+  }
+});
 // ----- VERIFY (the link in the email) -----
 router.get('/verify/:token', async (req, res, next) => {
   try {
